@@ -1,4 +1,5 @@
 import os
+import io  # <-- Tambahan library untuk handle file buffer
 import pandas as pd
 import streamlit as st
 import pydeck as pdk
@@ -19,7 +20,6 @@ st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Da
 
 # =========================
 # 2. UTIL KONEKSI DATABASE
-# (Diadaptasi dari 06_distribusi_pasien.py)
 # =========================
 def _build_query_runner() -> Callable[[str], pd.DataFrame]:
     """
@@ -78,11 +78,6 @@ def load_data_from_db():
             return pd.DataFrame()
 
         # --- MAPPING KOLOM ---
-        # Menyesuaikan nama kolom dari DB ke nama variabel internal yang dipakai di visualisasi
-        # DB: kota_kab -> Internal: kota
-        # DB: provinsi -> Internal: propinsi
-        # DB: latitude -> Internal: lat_raw
-        # DB: longitude -> Internal: lon_raw
         df = df.rename(columns={
             'kota_kab': 'kota',
             'provinsi': 'propinsi',
@@ -97,8 +92,6 @@ def load_data_from_db():
                 df[col] = df[col].fillna("-").astype(str)
 
         # --- BERSIHKAN KOORDINAT ---
-        # Karena di DB tipe datanya varchar(50) dan mungkin berisi koma (misal "-6,123")
-        # Kita ganti koma jadi titik, lalu convert ke float
         df['lat'] = df['lat_raw'].astype(str).str.replace(',', '.', regex=False)
         df['lon'] = df['lon_raw'].astype(str).str.replace(',', '.', regex=False)
         
@@ -191,13 +184,37 @@ if not df_pts.empty:
     ))
     
     # Tabel Data
-    with st.expander("Lihat Data Tabel"):
-        # Tampilkan kolom yang relevan untuk user
+    with st.expander("Lihat Data Tabel", expanded=False):
+        # Kolom yang akan ditampilkan & di-download
         cols_display = ['nama', 'alamat', 'kota', 'propinsi', 'website', 'lat', 'lon']
+        
         st.dataframe(df_pts[cols_display])
 
+        # --- FITUR DOWNLOAD EXCEL ---
+        st.write("---")
+        st.write("📥 **Unduh Data**")
+        
+        # 1. Siapkan buffer di memori
+        buffer = io.BytesIO()
+        
+        # 2. Tulis DataFrame ke buffer sebagai Excel
+        # Menggunakan engine 'xlsxwriter' (pastikan ada di requirements.txt)
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            df_pts[cols_display].to_excel(writer, index=False, sheet_name='Data PTS')
+            
+            # Opsional: Auto-adjust lebar kolom (mempercantik excel)
+            workbook  = writer.book
+            worksheet = writer.sheets['Data PTS']
+            format1 = workbook.add_format({'text_wrap': True})
+            worksheet.set_column('A:G', 20, format1)
+
+        # 3. Tombol Download
+        st.download_button(
+            label="📄 Download File Excel (.xlsx)",
+            data=buffer,
+            file_name="data_pts_jawa.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
 else:
-
     st.warning("Data tidak ditemukan atau tabel kosong.")
-
-
