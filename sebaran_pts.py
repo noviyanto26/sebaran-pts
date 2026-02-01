@@ -184,7 +184,7 @@ if not df_pts.empty:
 
     # Render Peta
     st.pydeck_chart(pdk.Deck(
-        map_style='mapbox://styles/mapbox/light-v9', # Style peta terang
+        map_style=None,
         initial_view_state=view_state,
         layers=[scatter_layer, text_layer],
         tooltip=tooltip
@@ -199,3 +199,4 @@ if not df_pts.empty:
 else:
 
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
