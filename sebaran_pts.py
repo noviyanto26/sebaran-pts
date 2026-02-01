@@ -128,11 +128,11 @@ if not df_pts.empty:
     # --- KONFIGURASI PETA ---
     # Hitung tengah peta berdasarkan rata-rata koordinat data
     view_state = pdk.ViewState(
-        latitude=df_pts['lat'].mean(),
-        longitude=df_pts['lon'].mean(),
-        zoom=6,
-        pitch=0
-    )
+            latitude=-7.30,    # Tengah Pulau Jawa
+            longitude=110.00,  # Tengah Pulau Jawa
+            zoom=6.8,          # Zoom pas untuk satu pulau
+            pitch=0
+        )
 
     # Layer 1: Titik (Scatter)
     scatter_layer = pdk.Layer(
@@ -199,4 +199,5 @@ if not df_pts.empty:
 else:
 
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
 
