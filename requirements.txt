@@ -4,3 +4,4 @@ pydeck
 sqlalchemy
 psycopg2-binary
 openpyxl
+xlsxwriter
