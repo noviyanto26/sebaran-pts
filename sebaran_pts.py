@@ -9,12 +9,12 @@ from typing import Callable
 # 1. KONFIGURASI HALAMAN
 # =========================
 st.set_page_config(
-    page_title="Peta Lokasi PTS Jawa",
+    page_title="Peta Lokasi PTS",
     page_icon="🎓",
     layout="wide"
 )
 
-st.title("🎓 Peta Persebaran PTS di Jawa")
+st.title("🎓 Peta Persebaran PTS")
 st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database Supabase**.")
 
 # =========================
@@ -197,4 +197,5 @@ if not df_pts.empty:
         st.dataframe(df_pts[cols_display])
 
 else:
+
     st.warning("Data tidak ditemukan atau tabel kosong.")
