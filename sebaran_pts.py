@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 st.title("🎓 Peta Persebaran PTS")
-st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database Supabase**.")
+st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database**.")
 
 # =========================
 # 2. UTIL KONEKSI DATABASE
@@ -218,3 +218,4 @@ if not df_pts.empty:
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
