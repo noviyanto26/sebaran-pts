@@ -1,5 +1,5 @@
 import os
-import io  # <-- Tambahan library untuk handle file buffer
+import io
 import pandas as pd
 import streamlit as st
 import pydeck as pdk
@@ -16,206 +16,142 @@ st.set_page_config(
 )
 
 st.title("🎓 Peta Persebaran PTS")
-st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database**.")
+st.markdown("Aplikasi ini menampilkan data lengkap PTS dari database.")
 
 # =========================
 # 2. UTIL KONEKSI DATABASE
 # =========================
 def _build_query_runner() -> Callable[[str], pd.DataFrame]:
-    """
-    Mencoba membuat fungsi runner query.
-    Prioritas 1: st.connection (Streamlit native)
-    Prioritas 2: sqlalchemy engine (jika st.connection gagal/tidak dikonfigurasi)
-    """
-    # Cara 1: Coba Native Streamlit Connection
     try:
         conn = st.connection("postgresql", type="sql")
         def _run_query_streamlit(sql: str) -> pd.DataFrame:
             return conn.query(sql)
-        # Test koneksi ringan
         _ = _run_query_streamlit("SELECT 1 as ok;")
         return _run_query_streamlit
     except Exception:
         pass
 
-    # Cara 2: Fallback menggunakan SQLAlchemy Engine
     db_url = st.secrets.get("DATABASE_URL", os.getenv("DATABASE_URL", ""))
     if not db_url:
-        st.error("❌ Koneksi DB tidak dikonfigurasi. Pastikan 'connections.postgresql' ada di secrets.toml atau environment variable 'DATABASE_URL' diset.")
+        st.error("❌ Koneksi DB tidak dikonfigurasi.")
         st.stop()
     
     engine = create_engine(db_url, pool_pre_ping=True)
-
     def _run_query_engine(sql: str) -> pd.DataFrame:
         with engine.connect() as con:
             return pd.read_sql(text(sql), con)
     return _run_query_engine
 
-# Inisialisasi runner query
 run_query = _build_query_runner()
 
 # =========================
 # 3. FUNGSI PEMROSESAN DATA
 # =========================
-@st.cache_data(ttl=300) # Cache data selama 5 menit
+@st.cache_data(ttl=300)
 def load_data_from_db():
     try:
-        # Query mengambil semua data dari tabel profil_pts
-        query = """
-            SELECT 
-                nama, 
-                alamat, 
-                kota_kab, 
-                provinsi, 
-                website, 
-                latitude, 
-                longitude 
-            FROM public.profil_pts
-        """
+        # Mengambil SEMUA kolom sesuai struktur tabel terbaru
+        query = "SELECT * FROM public.profil_pts"
         df = run_query(query)
         
         if df.empty:
             return pd.DataFrame()
 
-        # --- MAPPING KOLOM ---
-        df = df.rename(columns={
-            'kota_kab': 'kota',
-            'provinsi': 'propinsi',
-            'latitude': 'lat_raw',
-            'longitude': 'lon_raw'
-        })
+        # --- BERSIHKAN DATA ---
+        # List semua kolom teks berdasarkan struktur tabel Anda
+        text_cols = [
+            'kode_pts', 'nama', 'status_pt', 'singkatan', 'alamat', 
+            'kota_kab', 'provinsi', 'kode_pos', 'no_telp', 
+            'no_fax', 'email', 'website'
+        ]
         
-        # Isi data kosong pada kolom teks
-        text_cols = ['alamat', 'propinsi', 'kota', 'website', 'nama']
         for col in text_cols:
             if col in df.columns:
                 df[col] = df[col].fillna("-").astype(str)
 
-        # --- BERSIHKAN KOORDINAT ---
-        df['lat'] = df['lat_raw'].astype(str).str.replace(',', '.', regex=False)
-        df['lon'] = df['lon_raw'].astype(str).str.replace(',', '.', regex=False)
+        # --- KONVERSI KOORDINAT UNTUK PETA ---
+        # Simpan nilai asli ke kolom 'lat' dan 'lon' untuk keperluan pydeck
+        df['lat'] = df['latitude'].astype(str).str.replace(',', '.', regex=False)
+        df['lon'] = df['longitude'].astype(str).str.replace(',', '.', regex=False)
         
         df['lat'] = pd.to_numeric(df['lat'], errors='coerce')
         df['lon'] = pd.to_numeric(df['lon'], errors='coerce')
         
-        # Hapus baris yang koordinatnya invalid/kosong
-        df = df.dropna(subset=['lat', 'lon'])
-        
         return df
 
     except Exception as e:
-        st.error(f"Error saat mengambil data dari database: {e}")
+        st.error(f"Error saat mengambil data: {e}")
         return pd.DataFrame()
 
 # =========================
 # 4. VISUALISASI UTAMA
 # =========================
-
-# Load data langsung saat aplikasi dibuka
-with st.spinner("Mengambil data dari Supabase..."):
+with st.spinner("Mengambil data..."):
     df_pts = load_data_from_db()
 
 if not df_pts.empty:
-    st.success(f"✅ Data berhasil dimuat: {len(df_pts)} kampus ditemukan.")
+    st.success(f"✅ Data berhasil dimuat: {len(df_pts)} PTS ditemukan.")
     
-    # --- KONFIGURASI PETA ---
-    # Hitung tengah peta berdasarkan rata-rata koordinat data
-    view_state = pdk.ViewState(
-            latitude=-7.30,    # Tengah Pulau Jawa
-            longitude=110.00,  # Tengah Pulau Jawa
-            zoom=6.8,          # Zoom pas untuk satu pulau
-            pitch=0
-        )
+    # Filter data yang memiliki koordinat valid untuk Peta
+    df_map = df_pts.dropna(subset=['lat', 'lon'])
 
-    # Layer 1: Titik (Scatter)
+    # --- RENDER PETA ---
+    view_state = pdk.ViewState(latitude=-7.30, longitude=110.00, zoom=6, pitch=0)
+    
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
-        data=df_pts,
+        data=df_map,
         get_position='[lon, lat]',
-        get_color=[255, 0, 0, 200], # Merah transparan
-        
-        # Pengaturan Ukuran Titik
-        get_radius=1000,            
-        radius_min_pixels=3,        
-        radius_max_pixels=10,       
-        
-        pickable=True,
-        auto_highlight=True
+        get_color=[255, 75, 75, 200],
+        get_radius=2000,
+        radius_min_pixels=4,
+        pickable=True
     )
 
-    # Layer 2: Teks Nama
-    text_layer = pdk.Layer(
-        "TextLayer",
-        data=df_pts,
-        get_position='[lon, lat]',
-        get_text="nama",
-        get_size=12,
-        get_color=[0, 0, 100], # Biru gelap
-        get_angle=0,
-        text_anchor="middle",
-        alignment_baseline="bottom",
-        billboard=True # Teks selalu menghadap user meskipun peta diputar
-    )
-
-    # Tooltip (Pop-up saat hover)
-    tooltip = {
-        "html": """
-            <b>{nama}</b><br/>
-            <small>{alamat}</small><br/>
-            {kota}, {propinsi}<br/>
-            <i>{website}</i>
-        """,
-        "style": {
-            "backgroundColor": "white", 
-            "color": "black",
-            "fontSize": "12px",
-            "padding": "10px",
-            "borderRadius": "5px",
-            "border": "1px solid #ccc"
-        }
-    }
-
-    # Render Peta
     st.pydeck_chart(pdk.Deck(
         map_style=None,
         initial_view_state=view_state,
-        layers=[scatter_layer, text_layer],
-        tooltip=tooltip
+        layers=[scatter_layer],
+        tooltip={"text": "{nama}\n{kota_kab}, {provinsi}"}
     ))
     
-    # Tabel Data
-    with st.expander("Lihat Data Tabel", expanded=False):
-        # Kolom yang akan ditampilkan & di-download
-        cols_display = ['nama', 'alamat', 'kota', 'propinsi', 'website', 'lat', 'lon']
+    # --- TABEL DATA LENGKAP ---
+    with st.expander("🔍 Lihat Tabel Data Lengkap", expanded=True):
+        # Menyusun urutan kolom agar rapi di tabel
+        cols_to_show = [
+            'id', 'kode_pts', 'nama', 'singkatan', 'status_pt', 
+            'alamat', 'kota_kab', 'provinsi', 'kode_pos', 
+            'email', 'website', 'no_telp', 'latitude', 'longitude'
+        ]
         
-        st.dataframe(df_pts[cols_display])
+        # Filter kolom yang benar-benar ada di dataframe
+        existing_cols = [c for c in cols_to_show if c in df_pts.columns]
+        st.dataframe(df_pts[existing_cols], use_container_width=True)
 
         # --- FITUR DOWNLOAD EXCEL ---
         st.write("---")
-        st.write("📥 **Unduh Data**")
+        st.write("📥 **Unduh Data Lengkap**")
         
-        # 1. Siapkan buffer di memori
         buffer = io.BytesIO()
-        
-        # 2. Tulis DataFrame ke buffer sebagai Excel
-        # Menggunakan engine 'xlsxwriter' (pastikan ada di requirements.txt)
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            df_pts[cols_display].to_excel(writer, index=False, sheet_name='Data PTS')
+            # Export semua kolom yang ada di database
+            df_pts.to_excel(writer, index=False, sheet_name='Profil PTS')
             
-            # Opsional: Auto-adjust lebar kolom (mempercantik excel)
             workbook  = writer.book
-            worksheet = writer.sheets['Data PTS']
-            format1 = workbook.add_format({'text_wrap': True})
-            worksheet.set_column('A:G', 20, format1)
+            worksheet = writer.sheets['Profil PTS']
+            
+            # Format header & auto-adjust (sederhana)
+            header_format = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
+            for col_num, value in enumerate(df_pts.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                worksheet.set_column(col_num, col_num, 15)
 
-        # 3. Tombol Download
         st.download_button(
-            label="📄 Download File Excel (.xlsx)",
+            label="📄 Download Seluruh Data ke Excel (.xlsx)",
             data=buffer,
-            file_name="data_pts_jawa.xlsx",
+            file_name="profil_pts_lengkap.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
-
