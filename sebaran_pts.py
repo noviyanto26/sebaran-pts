@@ -50,15 +50,18 @@ run_query = _build_query_runner()
 @st.cache_data(ttl=300)
 def load_data_from_db():
     try:
-        # Mengambil SEMUA kolom sesuai struktur tabel terbaru
         query = "SELECT * FROM public.profil_pts"
         df = run_query(query)
         
         if df.empty:
             return pd.DataFrame()
 
-        # --- BERSIHKAN DATA ---
-        # List semua kolom teks berdasarkan struktur tabel Anda
+        # --- FIX ERROR EXCEL: Hilangkan Timezone ---
+        # Excel tidak bisa menerima format datetime dengan timezone (UTC+7, dll)
+        for col in df.select_dtypes(include=['datetimetz', 'datetime']).columns:
+            df[col] = df[col].dt.tz_localize(None)
+
+        # --- BERSIHKAN DATA TEKS ---
         text_cols = [
             'kode_pts', 'nama', 'status_pt', 'singkatan', 'alamat', 
             'kota_kab', 'provinsi', 'kode_pos', 'no_telp', 
@@ -69,13 +72,12 @@ def load_data_from_db():
             if col in df.columns:
                 df[col] = df[col].fillna("-").astype(str)
 
-        # --- KONVERSI KOORDINAT UNTUK PETA ---
-        # Simpan nilai asli ke kolom 'lat' dan 'lon' untuk keperluan pydeck
-        df['lat'] = df['latitude'].astype(str).str.replace(',', '.', regex=False)
-        df['lon'] = df['longitude'].astype(str).str.replace(',', '.', regex=False)
-        
-        df['lat'] = pd.to_numeric(df['lat'], errors='coerce')
-        df['lon'] = pd.to_numeric(df['lon'], errors='coerce')
+        # --- KONVERSI KOORDINAT ---
+        if 'latitude' in df.columns and 'longitude' in df.columns:
+            df['lat'] = df['latitude'].astype(str).str.replace(',', '.', regex=False)
+            df['lon'] = df['longitude'].astype(str).str.replace(',', '.', regex=False)
+            df['lat'] = pd.to_numeric(df['lat'], errors='coerce')
+            df['lon'] = pd.to_numeric(df['lon'], errors='coerce')
         
         return df
 
@@ -155,3 +157,4 @@ if not df_pts.empty:
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
