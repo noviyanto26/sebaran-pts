@@ -132,7 +132,7 @@ if not df_pts.empty:
     }
 
     st.pydeck_chart(pdk.Deck(
-        map_style="mapbox://styles/mapbox/light-v9", # Style peta terang
+        map_style=None, # Style peta terang
         initial_view_state=view_state,
         layers=[scatter_layer],
         tooltip=tooltip_config
@@ -187,3 +187,4 @@ else:
 # Penutup
 st.divider()
 st.caption("Aplikasi Pemetaan PTS | Versi 2.0")
+
