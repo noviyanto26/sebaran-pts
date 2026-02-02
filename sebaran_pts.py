@@ -199,46 +199,61 @@ if not df_pts.empty:
     
     # --- BAGIAN TABEL DAN DOWNLOAD ---
     with st.expander("Lihat Data Tabel", expanded=False):
-        # Daftar kolom lengkap untuk ditampilkan
-        # Note: 'kota' dan 'propinsi' adalah nama baru setelah di-rename di fungsi load
+        
+        # 1. Pilih kolom yang mau ditampilkan (created_at tidak dimasukkan)
         cols_display = [
             'id', 'kode_pts', 'nama', 'status_pt', 'singkatan', 
             'alamat', 'kota', 'propinsi', 'kode_pos', 
             'lat_raw', 'lon_raw', 'no_telp', 'no_fax', 
-            'email', 'website', 'created_at'
+            'email', 'website'
         ]
+
+        # 2. Buat Dictionary untuk Rename Kolom (Alias)
+        column_aliases = {
+            'id': 'No',
+            'kode_pts': 'Kode PTS',
+            'nama': 'Nama PTS',
+            'status_pt': 'Status Keaktifan',
+            'singkatan': 'Singkatan',
+            'alamat': 'Alamat',
+            'kota': 'Kota/Kab',
+            'propinsi': 'Propinsi',
+            'kode_pos': 'Kode Pos',
+            'lat_raw': 'Latitude',
+            'lon_raw': 'Longitude',
+            'no_telp': 'No Telp',
+            'no_fax': 'No Fax',
+            'email': 'Email',
+            'website': 'Website'
+        }
+
+        # 3. Buat DataFrame View dengan nama baru
+        df_view = df_pts[cols_display].rename(columns=column_aliases)
         
         # Tampilkan DataFrame di layar
-        st.dataframe(df_pts[cols_display])
+        st.dataframe(df_view)
 
         st.write("---")
         st.write("📥 **Unduh Data**")
         
-        # 1. Siapkan buffer di memori
+        # Siapkan buffer di memori
         buffer = io.BytesIO()
         
-        # --- PERBAIKAN ERROR TIMEZONE DISINI ---
-        # Buat copy dataframe khusus export agar tidak mengganggu df utama
-        df_export = df_pts[cols_display].copy()
-
-        # Cek dan bersihkan kolom created_at dari zona waktu (Timezone-aware -> Timezone-naive)
-        if 'created_at' in df_export.columns:
-            # Pastikan tipe datanya datetime, lalu buang info timezone
-            df_export['created_at'] = pd.to_datetime(df_export['created_at']).dt.tz_localize(None)
-
-        # 2. Tulis DataFrame ke buffer sebagai Excel
+        # Tulis DataFrame ke buffer sebagai Excel
+        # Catatan: Kita menggunakan df_view yang kolomnya sudah direname dan
+        # 'created_at' sudah tidak ada, jadi aman dari error timezone.
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            df_export.to_excel(writer, index=False, sheet_name='Data PTS')
+            df_view.to_excel(writer, index=False, sheet_name='Data PTS')
             
             # Format Excel agar rapi (Text Wrap dan lebar kolom)
             workbook  = writer.book
             worksheet = writer.sheets['Data PTS']
             format_wrap = workbook.add_format({'text_wrap': True, 'valign': 'top'})
             
-            # Set lebar kolom A sampai P (16 kolom)
-            worksheet.set_column('A:P', 20, format_wrap)
+            # Set lebar kolom A sampai O (15 kolom)
+            worksheet.set_column('A:O', 20, format_wrap)
 
-        # 3. Tombol Download
+        # Tombol Download
         st.download_button(
             label="📄 Download File Excel (.xlsx)",
             data=buffer,
