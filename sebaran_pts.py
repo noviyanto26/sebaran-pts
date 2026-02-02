@@ -97,25 +97,23 @@ if not df_pts.empty:
     # Filter data yang memiliki koordinat valid untuk Peta
     df_map = df_pts.dropna(subset=['lat', 'lon'])
 
-    # --- RENDER PETA ---
+  # --- RENDER PETA ---
     view_state = pdk.ViewState(latitude=-7.30, longitude=110.00, zoom=6, pitch=0)
     
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
         data=df_map,
         get_position='[lon, lat]',
-        get_color=[255, 75, 75, 200],
-        get_radius=2000,
-        radius_min_pixels=4,
+        get_color=[255, 75, 75, 200], # Warna merah
+        
+        # --- UBAH BAGIAN INI ---
+        get_radius=500,          # Ukuran radius dalam meter (sebelumnya 2000)
+        radius_min_pixels=2,     # Ukuran minimum dalam pixel saat zoom jauh (sebelumnya 4)
+        radius_max_pixels=10,    # Ukuran maksimum saat zoom sangat dekat
+        # -----------------------
+
         pickable=True
     )
-
-    st.pydeck_chart(pdk.Deck(
-        map_style=None,
-        initial_view_state=view_state,
-        layers=[scatter_layer],
-        tooltip={"text": "{nama}\n{kota_kab}, {provinsi}"}
-    ))
     
     # --- TABEL DATA LENGKAP ---
     with st.expander("🔍 Lihat Tabel Data Lengkap", expanded=True):
@@ -157,4 +155,5 @@ if not df_pts.empty:
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
 
