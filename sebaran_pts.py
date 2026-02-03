@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🎓 Peta Persebaran PTS")
+st.title("🎓 Peta Persebaran Perguruan Tinggi Swasta")
 st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database**.")
 
 # =========================
@@ -263,3 +263,4 @@ if not df_pts.empty:
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
