@@ -231,7 +231,7 @@ if not df_pts.empty:
         df_view = df_pts[cols_display].rename(columns=column_aliases)
         
         # Tampilkan DataFrame di layar
-        st.dataframe(df_view)
+        st.dataframe(df_view, hide_index=True)
 
         st.write("---")
         st.write("📥 **Unduh Data**")
@@ -263,4 +263,5 @@ if not df_pts.empty:
 
 else:
     st.warning("Data tidak ditemukan atau tabel kosong.")
+
 
