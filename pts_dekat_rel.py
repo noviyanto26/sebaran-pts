@@ -13,7 +13,7 @@ from typing import Callable
 # =========================
 # 1. KONFIGURASI HALAMAN
 # =========================
-st.set_page_config(page_title="Analisis Jarak PTS ke Rel Kereta", layout="wide", page_icon="🚂")
+# st.set_page_config(page_title="Analisis Jarak PTS ke Rel Kereta", layout="wide", page_icon="🚂")
 
 st.title("🚂 Analisis Jarak Perguruan Tinggi ke Rel Kereta Api (Pulau Jawa)")
 st.write("Aplikasi ini menghitung jarak terdekat dari setiap Perguruan Tinggi Swasta (PTS) ke jalur rel kereta api di Pulau Jawa berdasarkan radius yang Anda tentukan. Data diambil secara *real-time* dari Database.")
