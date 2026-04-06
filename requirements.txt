@@ -10,3 +10,4 @@ shapely
 requests
 folium
 streamlit-folium
+streamlit-option-menu
