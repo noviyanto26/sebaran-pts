@@ -9,11 +9,11 @@ from typing import Callable
 # =========================
 # 1. KONFIGURASI HALAMAN
 # =========================
-st.set_page_config(
-    page_title="Peta Lokasi PTS",
-    page_icon="🎓",
-    layout="wide"
-)
+# st.set_page_config(
+#    page_title="Peta Lokasi PTS",
+#    page_icon="🎓",
+#    layout="wide"
+# )
 
 st.title("🎓 Peta Persebaran Perguruan Tinggi Swasta")
 st.markdown("Aplikasi ini menampilkan lokasi PTS yang diambil langsung dari **Database**.")
