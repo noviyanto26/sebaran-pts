@@ -5,3 +5,8 @@ sqlalchemy
 psycopg2-binary
 openpyxl
 xlsxwriter
+geopandas
+shapely
+requests
+folium
+streamlit-folium
