@@ -8,4 +8,4 @@ streamlit-folium
 streamlit-option-menu
 SQLAlchemy
 openpyxl
-psycopg2
+psycopg2-binary
