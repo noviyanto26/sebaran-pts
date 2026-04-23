@@ -134,6 +134,32 @@ with st.sidebar:
     # Slider untuk menentukan radius jarak (default 3 km / 3000 m)
     radius_km = st.slider("Batas Jarak ke Rel (Kilometer)", min_value=0.5, max_value=10.0, value=3.0, step=0.5)
     radius_m = radius_km * 1000
+    
+    st.divider() # Garis pemisah
+    
+    # --- KODE BARU: TOMBOL TES KECEPATAN ---
+    st.subheader("🛠️ Diagnostik API")
+    if st.button("⏱️ Tes Kecepatan Server Overpass"):
+        import time
+        
+        query_tes = """[out:json];way["railway"="rail"](-8.8, 105.0, -5.8, 115.0);out geom;"""
+        headers_tes = {'User-Agent': 'Aplikasi_Analisis_PTS_Jawa/1.0'}
+        
+        with st.spinner("Menguji Kumi Systems..."):
+            start = time.time()
+            try:
+                res1 = requests.post("https://overpass.kumi.systems/api/interpreter", data={'data': query_tes}, headers=headers_tes, timeout=30)
+                st.success(f"**Kumi Systems:** {time.time() - start:.2f} detik (Status: {res1.status_code})")
+            except Exception as e:
+                st.error(f"**Kumi Systems:** Gagal ({e})")
+                
+        with st.spinner("Menguji OSM France..."):
+            start = time.time()
+            try:
+                res2 = requests.post("https://overpass.openstreetmap.fr/api/interpreter", data={'data': query_tes}, headers=headers_tes, timeout=30)
+                st.success(f"**OSM France:** {time.time() - start:.2f} detik (Status: {res2.status_code})")
+            except Exception as e:
+                st.error(f"**OSM France:** Gagal ({e})")
 
 # =========================
 # 5. LOGIKA UTAMA & TAMPILAN
