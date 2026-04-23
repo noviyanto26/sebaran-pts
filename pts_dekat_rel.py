@@ -102,7 +102,7 @@ def load_data_from_db():
 
 @st.cache_data(show_spinner="Mengunduh data rel kereta api dari OpenStreetMap...")
 def get_railway_data():
-    overpass_url = "https://overpass.openstreetmap.fr/api/interpreter"
+    overpass_url = "https://overpass.kumi.systems/api/interpreter"
     overpass_query = """
     [out:json];
     (
